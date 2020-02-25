@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -196,17 +195,11 @@ type Amount big.Int
 
 var oneBTC = big.NewInt(100000000)
 
-func splitSats(sats *big.Int) (*big.Int, *big.Int) {
-	b, s := new(big.Int).Set(sats), new(big.Int)
-	b.DivMod(b, oneBTC, s)
-	return b, s
-}
-
 func (a Amount) String() string {
-	bi := big.Int(a)
-	b, s := splitSats(&bi)
-	r := fmt.Sprintf("%s.%.8d", b.String(), s.Int64())
-	return strings.TrimRight(r, "0.")
+	c := new(big.Int).Set((&a).BigInt())
+	s := new(big.Int)
+	c, s = c.DivMod(c, oneBTC, s)
+	return fmt.Sprintf("%s.%.8d", c.String(), s.Int64())
 }
 
 func (a Amount) MarshalJSON() ([]byte, error) { return []byte(a.String()), nil }
@@ -238,9 +231,13 @@ func (a *Amount) UnmarshalJSON(b []byte) error {
 		}
 		r.Add(r, rs)
 	}
-	(*big.Int)(a).Set(r)
+	a.SetBigInt(r)
 	return nil
 }
+
+func (a *Amount) BigInt() *big.Int       { return (*big.Int)(a) }
+func (a *Amount) Set(amt *Amount)        { a = amt }
+func (a *Amount) SetBigInt(amt *big.Int) { (*big.Int)(a).Set(amt) }
 
 type UnspentOutput struct {
 	TxID          string  `json:"txid"`

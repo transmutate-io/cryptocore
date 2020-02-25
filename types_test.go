@@ -67,5 +67,5 @@ func TestMarshalUnmarshalAmount(t *testing.T) {
 	newA := &Amount{}
 	err = json.Unmarshal(b, newA)
 	require.NoError(t, err, "can't unmarshal amount")
-	require.Zero(t, (*big.Int)(a).Cmp((*big.Int)(newA)), "values mismatch")
+	require.Zero(t, a.BigInt().Cmp(newA.BigInt()), "values mismatch")
 }

@@ -53,16 +53,16 @@ type rpcRequest struct {
 
 type rpcResponse struct {
 	ID     string       `json:"id"`
-	Error  *walletError `json:"error"`
+	Error  *WalletError `json:"error"`
 	Result interface{}  `json:"result"`
 }
 
-type walletError struct {
+type WalletError struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 }
 
-func (we *walletError) Error() string { return we.Message }
+func (we *WalletError) Error() string { return we.Message }
 
 func (c *Client) GetBlockHash(n int) (HexBytes, error) {
 	r := HexBytes{}
@@ -189,19 +189,70 @@ func (c *Client) ListUnspent(minConf, maxConf int, addrs []string) ([]*UnspentOu
 	return r, nil
 }
 
-// {
-//     "txid": "ee99c2be6a111c5ee04e17b2b848b05e0e19cd291d8b4553b9bb0789720dbaff",
-//     "vout": 0,
-//     "address": "2MuQ4m4vyadPoTPxJVfZnASuutDQWTn2BVE",
-//     "label": "",
-//     "redeemScript": "0014fe67e5782a3e33f8da397b5e973d76098f35c9f7",
-//     "scriptPubKey": "a914179c4acdb6bbb9ee3be5abc1281b1c35931c99c287",
-//     "amount": 50.00000000,
-//     "confirmations": 107,
-//     "spendable": true,
-//     "solvable": true,
-//     "desc": "sh(wpkh([6e32d818/0'/0'/0']03bbe66ff0657083287222a71a3282b79da837494b49575553c6c997085d3d1203))#r6s8dqa7",
-//     "safe": true
-//   }
+func (c *Client) SendRawTransaction(tx HexBytes, maxFeeRate interface{}) (string, error) {
+	args := map[string]interface{}{"hexstring": tx.String()}
+	if maxFeeRate != nil {
+		args["maxfeerate"] = maxFeeRate
+	}
+	var r string
+	if err := c.do("sendrawtransaction", args, &r); err != nil {
+		return "", err
+	}
+	return r, nil
+}
 
-// listunspent
+func (c *Client) SendToAddress(addr string, value *Amount) (string, error) {
+	var r string
+	if err := c.do("sendtoaddress", []interface{}{addr, value}, &r); err != nil {
+		return "", err
+	}
+	return r, nil
+}
+
+type AddressFunds struct {
+	WatchOnly     bool     `json"involvesWatchonly"`
+	Address       string   `json:"address"`
+	Amount        *Amount  `json:"amount"`
+	Confirmations int      `json:"confirmations"`
+	Label         string   `json:"label"`
+	TxIDs         []string `json:"txids"`
+}
+
+func (c *Client) ListReceivedByAddress(minConf, includeEmpty, includeWatchOnly, addrFilter interface{}) ([]*AddressFunds, error) {
+	r := make([]*AddressFunds, 0, 64)
+	args := make(map[string]interface{}, 4)
+	if minConf != nil {
+		args["minconf"] = minConf
+	}
+	if includeEmpty != nil {
+		args["include_empty"] = includeEmpty
+	}
+	if includeWatchOnly != nil {
+		args["include_watchonly"] = includeWatchOnly
+	}
+	if addrFilter != nil {
+		args["address_filter"] = addrFilter
+	}
+	if err := c.do("listreceivedbyaddress", args, &r); err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
+func (c *Client) GetBalance(minConf, includeWatchOnly, avoidReuse interface{}) (*Amount, error) {
+	args := make(map[string]interface{}, 3)
+	if minConf != nil {
+		args["minconf"] = minConf
+	}
+	if includeWatchOnly != nil {
+		args["include_watchonly"] = includeWatchOnly
+	}
+	if avoidReuse != nil {
+		args["avoid_reuse"] = avoidReuse
+	}
+	r := &Amount{}
+	if err := c.do("getbalance", args, r); err != nil {
+		return nil, err
+	}
+	return r, nil
+}
