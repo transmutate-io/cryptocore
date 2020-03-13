@@ -19,7 +19,7 @@ type Client interface {
 	RawTransaction(hash types.Bytes) (types.Bytes, error)
 	Transaction(hash types.Bytes) (*types.Transaction, error)
 	// Unspent(minConf, maxConf int, addrs []string) ([]*btc.UnspentOutput, error)
-	// ReceivedByAddress(minConf, includeEmpty, includeWatchOnly, addrFilter interface{}) ([]*btc.AddressFunds, error)
+	ReceivedByAddress(minConf, includeEmpty, includeWatchOnly interface{}) ([]*types.AddressFunds, error)
 }
 
 // func (c *baseClient) ListUnspent(minConf, maxConf int, addrs []string) ([]*btc.UnspentOutput, error) {

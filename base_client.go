@@ -175,3 +175,21 @@ func (c *baseClient) block(args ...interface{}) (*types.Block, error) {
 	}
 	return r, nil
 }
+
+func (c *baseClient) ReceivedByAddress(minConf, includeEmpty, includeWatchOnly interface{}) ([]*types.AddressFunds, error) {
+	args := mkArgs(3)
+	if minConf != nil {
+		args = append(args, minConf)
+	}
+	if includeEmpty != nil {
+		args = append(args, includeEmpty)
+	}
+	if includeWatchOnly != nil {
+		args = append(args, includeWatchOnly)
+	}
+	r := []*types.AddressFunds{}
+	if err := c.do("listreceivedbyaddress", args, &r); err != nil {
+		return nil, err
+	}
+	return r, nil
+}
