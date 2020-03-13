@@ -57,7 +57,15 @@ func (a *Amount) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func (a Amount) Prec(n int) Amount {
+func (a Amount) Prec() uint64 {
+	p := strings.Split(string(a), ".")
+	if len(p) < 2 {
+		return 0
+	}
+	return uint64(len(p[1]))
+}
+
+func (a Amount) WithPrec(n int) Amount {
 	p := strings.Split(string(a), ".")
 	if len(p) == 1 {
 		p = append(p, "")
@@ -71,7 +79,7 @@ func (a Amount) Prec(n int) Amount {
 }
 
 func (a Amount) UInt64(p int) uint64 {
-	p1, p2, err := splitAmount(string(a.Prec(p)))
+	p1, p2, err := splitAmount(string(a.WithPrec(p)))
 	if err != nil {
 		panic(InvalidAmountError(a))
 	}

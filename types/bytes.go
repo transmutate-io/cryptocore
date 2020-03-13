@@ -48,3 +48,18 @@ func (b *Bytes) UnmarshalJSON(bb []byte) error {
 	*b = tb
 	return nil
 }
+
+func (b *Bytes) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var t string
+	if err := unmarshal(&t); err != nil {
+		return err
+	}
+	r, err := ParseBytesHex(t)
+	if err != nil {
+		return err
+	}
+	*b = Bytes(r)
+	return nil
+}
+
+func (b Bytes) MarshalYAML() (interface{}, error) { return b.Hex(), nil }
