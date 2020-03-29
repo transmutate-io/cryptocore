@@ -1,6 +1,7 @@
 package btccore
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -57,16 +58,38 @@ func TestClient(t *testing.T) {
 			bal, err := i.cl.Balance(0)
 			require.NoError(t, err, "can't get balance")
 			_ = bal
+			// get block count
 			bc, err := i.cl.BlockCount()
 			require.NoError(t, err, "can't get block count")
+			// get block count
 			bh, err := i.cl.BlockHash(bc)
 			require.NoError(t, err, "can't get block hash")
+			// get raw block
 			_, err = i.cl.RawBlock(bh)
 			require.NoError(t, err, "can't get raw block")
+			// get last block
 			_, err = i.cl.Block(bh)
 			require.NoError(t, err, "can't get block")
+			// get transaction
 			_, err = i.cl.Transaction(txID)
 			require.NoError(t, err, "can't find transaction")
+			// iterate all blocks
+			nextblock, closeIter := NewBlockIterator(i.cl, 1)
+			for i := uint64(1); i < bc; i++ {
+				_, err = nextblock()
+				require.NoError(t, err, "can't iterate blocks")
+			}
+			closeIter()
+			// iterate transactions
+			nextTx, closeIter := NewTransactionIterator(i.cl, 1)
+			for {
+				tx, err := nextTx()
+				require.NoError(t, err, "can't iterate transactions")
+				if bytes.Equal(tx.ID, txID) {
+					break
+				}
+			}
+			closeIter()
 		})
 	}
 }

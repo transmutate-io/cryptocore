@@ -4,23 +4,29 @@ import (
 	"transmutate.io/pkg/btccore/types"
 )
 
-type Client interface {
-	do(method string, params interface{}, r interface{}) error
-	NewAddress() (string, error)
-	DumpPrivateKey(addr string) (string, error)
-	GenerateToAddress(nBlocks int, addr string) ([]types.Bytes, error)
-	SendToAddress(addr string, value types.Amount) (types.Bytes, error)
-	Balance(minConf int64) (types.Amount, error)
-	BlockCount() (uint64, error)
-	BlockHash(height uint64) (types.Bytes, error)
-	RawBlock(hash types.Bytes) (types.Bytes, error)
-	Block(hash types.Bytes) (*types.Block, error)
-	SendRawTransaction(tx types.Bytes) (types.Bytes, error)
-	RawTransaction(hash types.Bytes) (types.Bytes, error)
-	Transaction(hash types.Bytes) (*types.Transaction, error)
-	// Unspent(minConf, maxConf int, addrs []string) ([]*btc.UnspentOutput, error)
-	ReceivedByAddress(minConf, includeEmpty, includeWatchOnly interface{}) ([]*types.AddressFunds, error)
-}
+type (
+	BlockFunc       = func() (*types.Block, error)
+	TransactionFunc = func() (*types.Transaction, error)
+	CloseFunc       = func()
+	Client          interface {
+		do(method string, params interface{}, r interface{}) error
+		NewAddress() (string, error)
+		DumpPrivateKey(addr string) (string, error)
+		GenerateToAddress(nBlocks int, addr string) ([]types.Bytes, error)
+		SendToAddress(addr string, value types.Amount) (types.Bytes, error)
+		Balance(minConf int64) (types.Amount, error)
+		BlockCount() (uint64, error)
+		BlockHash(height uint64) (types.Bytes, error)
+		RawBlock(hash types.Bytes) (types.Bytes, error)
+		Block(hash types.Bytes) (*types.Block, error)
+		SendRawTransaction(tx types.Bytes) (types.Bytes, error)
+		RawTransaction(hash types.Bytes) (types.Bytes, error)
+		Transaction(hash types.Bytes) (*types.Transaction, error)
+		ReceivedByAddress(minConf, includeEmpty, includeWatchOnly interface{}) ([]*types.AddressFunds, error)
+		// Unspent(minConf, maxConf int, addrs []string) ([]*btc.UnspentOutput, error)
+		// NewTransactionIterator(firstBlockHeight int) (chan *types.Transaction, CloseFunc)
+	}
+)
 
 // func (c *baseClient) ListUnspent(minConf, maxConf int, addrs []string) ([]*btc.UnspentOutput, error) {
 // 	var r []*btc.UnspentOutput

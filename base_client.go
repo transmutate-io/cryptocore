@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"transmutate.io/pkg/btccore/types"
 )
@@ -193,3 +194,93 @@ func (c *baseClient) ReceivedByAddress(minConf, includeEmpty, includeWatchOnly i
 	}
 	return r, nil
 }
+
+var blockIteratorTimeout = time.Second
+
+func NewBlockIterator(cl Client, blockHeight uint64) (BlockFunc, CloseFunc) {
+	cc := make(chan struct{}, 1)
+	bc := make(chan *types.Block)
+	errc := make(chan error)
+	go func() {
+		defer close(bc)
+		defer close(errc)
+		var (
+			bh  types.Bytes
+			err error
+		)
+		for {
+			if bh == nil {
+				if bh, err = cl.BlockHash(blockHeight); err != nil {
+					e, ok := err.(*ClientError)
+					if !ok || e.Code != -8 {
+						errc <- err
+						return
+					}
+					time.Sleep(blockIteratorTimeout)
+					continue
+				}
+			}
+			blk, err := cl.Block(bh)
+			if err != nil {
+				errc <- err
+				return
+			}
+			bh = blk.NextBlockHash
+			blockHeight++
+			select {
+			case bc <- blk:
+			case <-cc:
+				return
+			}
+		}
+	}()
+	return func() (*types.Block, error) {
+		select {
+		case blk := <-bc:
+			return blk, nil
+		case err := <-errc:
+			return nil, err
+		}
+	}, func() { close(cc) }
+}
+
+func NewTransactionIterator(cl Client, blockHeight uint64) (TransactionFunc, CloseFunc) {
+	cc := make(chan struct{}, 1)
+	tc := make(chan *types.Transaction)
+	errc := make(chan error)
+	go func() {
+		defer close(tc)
+		defer close(errc)
+		nextBlk, closeIter := NewBlockIterator(cl, blockHeight)
+		defer closeIter()
+		for {
+			blk, err := nextBlk()
+			if err != nil {
+				errc <- err
+				return
+			}
+			for _, i := range blk.Transactions {
+				tx, err := cl.Transaction(i)
+				if err != nil {
+					errc <- err
+					return
+				}
+				tc <- tx
+			}
+		}
+	}()
+	return func() (*types.Transaction, error) {
+		select {
+		case tx := <-tc:
+			return tx, nil
+		case err := <-errc:
+			return nil, err
+		}
+	}, func() { close(cc) }
+}
+
+// func (c *baseClient) NewTransactionIterator(firstBlockHeight int) (chan *types.Transaction, CloseFunc) {
+// 	cc := make(chan struct{})
+// 	// r := make(chan *types.Transaction)
+// 	return nil, func() { close(cc) }
+// }
