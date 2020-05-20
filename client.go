@@ -1,7 +1,7 @@
-package btccore
+package cryptocore
 
 import (
-	"transmutate.io/pkg/btccore/types"
+	"transmutate.io/pkg/cryptocore/types"
 )
 
 type (

@@ -1,6 +1,6 @@
-package btccore
+package cryptocore
 
-import "transmutate.io/pkg/btccore/types"
+import "transmutate.io/pkg/cryptocore/types"
 
 type dogeClient struct{ *baseClient }
 
@@ -14,4 +14,8 @@ func (c *dogeClient) RawBlock(hash types.Bytes) (types.Bytes, error) {
 
 func (c *dogeClient) Block(hash types.Bytes) (*types.Block, error) {
 	return c.block(hash, true)
+}
+
+func (c *dogeClient) Transaction(hash types.Bytes) (*types.Transaction, error) {
+	return c.transaction(hash)
 }

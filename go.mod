@@ -1,4 +1,4 @@
-module transmutate.io/pkg/btccore
+module transmutate.io/pkg/cryptocore
 
 go 1.13
 

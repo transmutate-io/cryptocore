@@ -1,4 +1,4 @@
-package btccore
+package cryptocore
 
 import (
 	"bytes"
@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"transmutate.io/pkg/btccore/types"
+	"transmutate.io/pkg/cryptocore/types"
 )
 
 type baseClient struct {
@@ -30,7 +30,7 @@ func (c *baseClient) do(method string, params interface{}, r interface{}) error 
 	b := bytes.NewBuffer(make([]byte, 0, 1024))
 	err := json.NewEncoder(b).Encode(&rpcRequest{
 		JsonRPC: "1.0",
-		ID:      "go-btccore",
+		ID:      "go-cryptocore",
 		Method:  method,
 		Params:  params,
 	})
@@ -45,6 +45,7 @@ func (c *baseClient) do(method string, params interface{}, r interface{}) error 
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	rr := &rpcResponse{Result: r}
 	if err = json.NewDecoder(resp.Body).Decode(rr); err != nil {
 		return err
@@ -147,7 +148,7 @@ func (c *baseClient) RawTransaction(hash types.Bytes) (types.Bytes, error) {
 	return c.doBytes("getrawtransaction", args(hash.Hex(), false))
 }
 
-func (c *baseClient) Transaction(hash types.Bytes) (*types.Transaction, error) {
+func (c *baseClient) transaction(hash types.Bytes) (*types.Transaction, error) {
 	r := &types.Transaction{}
 	if err := c.do("getrawtransaction", args(hash, true), r); err != nil {
 		return nil, err
