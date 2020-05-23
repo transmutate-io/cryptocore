@@ -1,23 +1,22 @@
 package cryptocore
 
 import (
-	"crypto/tls"
 	"strings"
 
 	"transmutate.io/pkg/cryptocore/types"
 )
 
-type btcCashClient struct{ *baseClient }
+type bchClient struct{ *baseClient }
 
-func NewClientBCH(addr, user, pass string, tlsConf *tls.Config) Client {
-	return &btcCashClient{baseClient: newBaseClient(addr, user, pass, tlsConf)}
+func NewClientBCH(addr, user, pass string, tlsConf *TLSConfig) Client {
+	return &bchClient{baseClient: newBaseClient(addr, user, pass, tlsConf)}
 }
 
-func (c *btcCashClient) RawBlock(hash types.Bytes) (types.Bytes, error) {
+func (c *bchClient) RawBlock(hash types.Bytes) (types.Bytes, error) {
 	return c.doBytes("getblock", args(hash, 0))
 }
 
-func (c *btcCashClient) Block(hash types.Bytes) (*types.Block, error) {
+func (c *bchClient) Block(hash types.Bytes) (*types.Block, error) {
 	r, err := c.block(hash, 1)
 	if err != nil {
 		return nil, err
@@ -25,7 +24,7 @@ func (c *btcCashClient) Block(hash types.Bytes) (*types.Block, error) {
 	return r, nil
 }
 
-func (c *btcCashClient) Transaction(hash types.Bytes) (*types.Transaction, error) {
+func (c *bchClient) Transaction(hash types.Bytes) (*types.Transaction, error) {
 	r, err := c.transaction(hash)
 	if err != nil {
 		return nil, err
