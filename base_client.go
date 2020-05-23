@@ -2,6 +2,7 @@ package cryptocore
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -11,18 +12,18 @@ import (
 )
 
 type baseClient struct {
-	Address  string
-	Username string
-	Password string
-	UseHTTPS bool
+	Address   string
+	Username  string
+	Password  string
+	TLSConfig *tls.Config
 }
 
-func newBaseClient(addr, user, pass string, useHTTPS bool) *baseClient {
+func newBaseClient(addr, user, pass string, tlsConf *tls.Config) *baseClient {
 	return &baseClient{
-		Address:  addr,
-		Username: user,
-		Password: pass,
-		UseHTTPS: useHTTPS,
+		Address:   addr,
+		Username:  user,
+		Password:  pass,
+		TLSConfig: tlsConf,
 	}
 }
 
@@ -38,7 +39,7 @@ func (c *baseClient) do(method string, params interface{}, r interface{}) error 
 		return err
 	}
 	var useHTTPS string
-	if c.UseHTTPS {
+	if c.TLSConfig != nil {
 		useHTTPS = "s"
 	}
 	resp, err := http.Post(fmt.Sprintf("http%s://%s:%s@%s/", useHTTPS, c.Username, c.Password, c.Address), "application/json", b)

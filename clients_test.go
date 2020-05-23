@@ -21,19 +21,25 @@ var clients = []struct {
 		"BTC",
 		101,
 		types.Amount(amt),
-		NewClientBTC("bitcoin-core-testnet.docker:4444", "admin", "pass", false),
+		NewClientBTC("bitcoin-core-regtest.docker:4444", "admin", "pass", nil),
 	},
 	{
 		"LTC",
 		101,
 		types.Amount(amt),
-		NewClientLTC("litecoin-testnet.docker:4444", "admin", "pass", false),
+		NewClientLTC("litecoin-regtest.docker:4444", "admin", "pass", nil),
 	},
 	{
 		"DOGE",
 		101,
 		types.Amount(amt),
-		NewClientDOGE("dogecoin-testnet.docker:4444", "admin", "pass", false),
+		NewClientDOGE("dogecoin-regtest.docker:4444", "admin", "pass", nil),
+	},
+	{
+		"BCH",
+		101,
+		types.Amount(amt),
+		NewClientBCH("bitcoin-cash-regtest.docker:4444", "admin", "pass", nil),
 	},
 }
 

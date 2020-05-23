@@ -1,11 +1,15 @@
 package cryptocore
 
-import "transmutate.io/pkg/cryptocore/types"
+import (
+	"crypto/tls"
+
+	"transmutate.io/pkg/cryptocore/types"
+)
 
 type ltcClient struct{ *baseClient }
 
-func NewClientLTC(addr, user, pass string, useHTTPS bool) Client {
-	return &ltcClient{baseClient: newBaseClient(addr, user, pass, useHTTPS)}
+func NewClientLTC(addr, user, pass string, tlsConf *tls.Config) Client {
+	return &ltcClient{baseClient: newBaseClient(addr, user, pass, tlsConf)}
 }
 
 func (c *ltcClient) Block(hash types.Bytes) (*types.Block, error) {

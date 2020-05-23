@@ -1,6 +1,7 @@
 package cryptocore
 
 import (
+	"crypto/tls"
 	"strings"
 
 	"transmutate.io/pkg/cryptocore/types"
@@ -8,8 +9,8 @@ import (
 
 type btcCashClient struct{ *baseClient }
 
-func NewClientBTCCash(addr, user, pass string, useHTTPS bool) Client {
-	return &btcCashClient{baseClient: newBaseClient(addr, user, pass, useHTTPS)}
+func NewClientBCH(addr, user, pass string, tlsConf *tls.Config) Client {
+	return &btcCashClient{baseClient: newBaseClient(addr, user, pass, tlsConf)}
 }
 
 func (c *btcCashClient) RawBlock(hash types.Bytes) (types.Bytes, error) {
