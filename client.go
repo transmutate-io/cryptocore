@@ -1,30 +1,47 @@
 package cryptocore
 
 import (
+	"transmutate.io/pkg/cryptocore/block"
+	"transmutate.io/pkg/cryptocore/tx"
 	"transmutate.io/pkg/cryptocore/types"
 )
 
 type (
-	BlockFunc       = func() (*types.Block, error)
-	TransactionFunc = func() (*types.Transaction, error)
+	BlockFunc       = func() (block.Block, error)
+	TransactionFunc = func() (tx.Tx, error)
 	CloseFunc       = func()
-	Client          interface {
+	BlockGenerator  interface {
+		CanGenerateBlocksToAddress() bool
+		GenerateBlocksToAddress(nBlocks int, addr string) ([]types.Bytes, error)
+		CanGenerateBlocks() bool
+		GenerateBlocks(nBlocks int) ([]types.Bytes, error)
+	}
+	Client interface {
 		do(method string, params interface{}, r interface{}) error
 		NewAddress() (string, error)
-		DumpPrivateKey(addr string) (string, error)
-		GenerateToAddress(nBlocks int, addr string) ([]types.Bytes, error)
 		SendToAddress(addr string, value types.Amount) (types.Bytes, error)
 		Balance(minConf int64) (types.Amount, error)
 		BlockCount() (uint64, error)
 		BlockHash(height uint64) (types.Bytes, error)
 		RawBlock(hash types.Bytes) (types.Bytes, error)
-		Block(hash types.Bytes) (*types.Block, error)
+		Block(hash types.Bytes) (block.Block, error)
 		SendRawTransaction(tx types.Bytes) (types.Bytes, error)
 		RawTransaction(hash types.Bytes) (types.Bytes, error)
-		Transaction(hash types.Bytes) (*types.Transaction, error)
+		Transaction(hash types.Bytes) (tx.Tx, error)
 		ReceivedByAddress(minConf, includeEmpty, includeWatchOnly interface{}) ([]*types.AddressFunds, error)
+
+		BlockGenerator
+
+		// DumpPrivateKey(addr string) (string, error)
+
 		// Unspent(minConf, maxConf int, addrs []string) ([]*btc.UnspentOutput, error)
-		// NewTransactionIterator(firstBlockHeight int) (chan *types.Transaction, CloseFunc)
+		// NewTransactionIterator(firstBlockHeight int) (chan tx.Tx, CloseFunc)
+	}
+	TLSConfig struct {
+		ClientCertificate string
+		ClientKey         string
+		CA                string
+		SkipVerify        bool
 	}
 )
 

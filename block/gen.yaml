@@ -1,0 +1,34 @@
+value_sets:
+  go:
+    package: block
+templates:
+- template: block_btc_like.go.tpl
+  out: block_btc.gen.go
+  value_sets:
+  - go
+  values:
+    short: BTC
+- template: block_btc_like.go.tpl
+  out: block_ltc.gen.go
+  value_sets:
+  - go
+  values:
+    short: LTC
+- template: block_btc_like.go.tpl
+  out: block_doge.gen.go
+  value_sets:
+  - go
+  values:
+    short: DOGE
+- template: block_btc_like.go.tpl
+  out: block_bch.gen.go
+  value_sets:
+  - go
+  values:
+    short: BCH
+- template: block_btc_like.go.tpl
+  out: block_dcr.gen.go
+  value_sets:
+  - go
+  values:
+    short: DCR

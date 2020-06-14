@@ -3,10 +3,11 @@ package cryptocore
 import (
 	"bytes"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
-	"fmt"
+	"io/ioutil"
 	"net/http"
-	"time"
+	"strings"
 
 	"transmutate.io/pkg/cryptocore/types"
 )
@@ -15,10 +16,10 @@ type baseClient struct {
 	Address   string
 	Username  string
 	Password  string
-	TLSConfig *tls.Config
+	TLSConfig *TLSConfig
 }
 
-func newBaseClient(addr, user, pass string, tlsConf *tls.Config) *baseClient {
+func newBaseClient(addr, user, pass string, tlsConf *TLSConfig) *baseClient {
 	return &baseClient{
 		Address:   addr,
 		Username:  user,
@@ -38,11 +39,39 @@ func (c *baseClient) do(method string, params interface{}, r interface{}) error 
 	if err != nil {
 		return err
 	}
-	var useHTTPS string
+	cl := &http.Client{}
+	callURL := append(make([]string, 0, 16), "http")
 	if c.TLSConfig != nil {
-		useHTTPS = "s"
+		callURL = append(callURL, "s")
+		tlsConf := &tls.Config{InsecureSkipVerify: c.TLSConfig.SkipVerify}
+		if c.TLSConfig.CA != "" {
+			b, err := ioutil.ReadFile(c.TLSConfig.CA)
+			if err != nil {
+				return err
+			}
+			cert, err := x509.ParseCertificate(b)
+			if err != nil {
+				return err
+			}
+			rootCAs := x509.NewCertPool()
+			rootCAs.AddCert(cert)
+			tlsConf.RootCAs = rootCAs
+		}
+		if c.TLSConfig.ClientCertificate != "" && c.TLSConfig.ClientKey != "" {
+			cert, err := tls.LoadX509KeyPair(c.TLSConfig.ClientCertificate, c.TLSConfig.ClientKey)
+			if err != nil {
+				return err
+			}
+			tlsConf.Certificates = append(tlsConf.Certificates, cert)
+		}
+		cl.Transport = &http.Transport{TLSClientConfig: tlsConf}
 	}
-	resp, err := http.Post(fmt.Sprintf("http%s://%s:%s@%s/", useHTTPS, c.Username, c.Password, c.Address), "application/json", b)
+	callURL = append(callURL, "://")
+	if c.Username != "" {
+		callURL = append(callURL, c.Username, ":", c.Password)
+	}
+	callURL = append(callURL, "@", c.Address, "/")
+	resp, err := cl.Post(strings.Join(callURL, ""), "application/json", b)
 	if err != nil {
 		return err
 	}
@@ -123,11 +152,19 @@ func mkArgs(n int, args ...interface{}) []interface{} {
 
 func args(a ...interface{}) []interface{} { return a }
 
-func (c *baseClient) DumpPrivateKey(addr string) (string, error) {
-	return c.doString("dumpprivkey", args(addr))
+// func (c *baseClient) DumpPrivateKey(addr string) (string, error) {
+// 	return c.doString("dumpprivkey", args(addr))
+// }
+
+func (c *baseClient) CanGenerateBlocksToAddress() bool { return true }
+
+func (c *baseClient) CanGenerateBlocks() bool { return true }
+
+func (c *baseClient) GenerateBlocks(nBlocks int) ([]types.Bytes, error) {
+	return c.doSliceBytes("generate", args(nBlocks))
 }
 
-func (c *baseClient) GenerateToAddress(nBlocks int, addr string) ([]types.Bytes, error) {
+func (c *baseClient) GenerateBlocksToAddress(nBlocks int, addr string) ([]types.Bytes, error) {
 	return c.doSliceBytes("generatetoaddress", args(nBlocks, addr))
 }
 
@@ -138,7 +175,14 @@ func (c *baseClient) SendToAddress(addr string, value types.Amount) (types.Bytes
 func (c *baseClient) BlockCount() (uint64, error) { return c.doUint64("getblockcount", nil) }
 
 func (c *baseClient) BlockHash(height uint64) (types.Bytes, error) {
-	return c.doBytes("getblockhash", args(height))
+	r, err := c.doBytes("getblockhash", args(height))
+	if err != nil {
+		if e, ok := err.(*ClientError); ok && e.Code == -8 {
+			return nil, ErrNoBlock
+		}
+		return nil, err
+	}
+	return r, nil
 }
 
 func (c *baseClient) SendRawTransaction(tx types.Bytes) (types.Bytes, error) {
@@ -149,12 +193,8 @@ func (c *baseClient) RawTransaction(hash types.Bytes) (types.Bytes, error) {
 	return c.doBytes("getrawtransaction", args(hash.Hex(), false))
 }
 
-func (c *baseClient) transaction(hash types.Bytes) (*types.Transaction, error) {
-	r := &types.Transaction{}
-	if err := c.do("getrawtransaction", args(hash, true), r); err != nil {
-		return nil, err
-	}
-	return r, nil
+func (c *baseClient) transaction(t interface{}, args interface{}) error {
+	return c.do("getrawtransaction", args, t)
 }
 
 func (c *baseClient) Balance(minConf int64) (types.Amount, error) {
@@ -171,12 +211,8 @@ func (c *baseClient) Balance(minConf int64) (types.Amount, error) {
 	return r, nil
 }
 
-func (c *baseClient) block(args ...interface{}) (*types.Block, error) {
-	r := &types.Block{}
-	if err := c.do("getblock", args, r); err != nil {
-		return nil, err
-	}
-	return r, nil
+func (c *baseClient) block(b interface{}, args interface{}) error {
+	return c.do("getblock", args, b)
 }
 
 func (c *baseClient) ReceivedByAddress(minConf, includeEmpty, includeWatchOnly interface{}) ([]*types.AddressFunds, error) {
@@ -196,93 +232,3 @@ func (c *baseClient) ReceivedByAddress(minConf, includeEmpty, includeWatchOnly i
 	}
 	return r, nil
 }
-
-var blockIteratorTimeout = time.Second
-
-func NewBlockIterator(cl Client, blockHeight uint64) (BlockFunc, CloseFunc) {
-	cc := make(chan struct{}, 1)
-	bc := make(chan *types.Block)
-	errc := make(chan error)
-	go func() {
-		defer close(bc)
-		defer close(errc)
-		var (
-			bh  types.Bytes
-			err error
-		)
-		for {
-			if bh == nil {
-				if bh, err = cl.BlockHash(blockHeight); err != nil {
-					e, ok := err.(*ClientError)
-					if !ok || e.Code != -8 {
-						errc <- err
-						return
-					}
-					time.Sleep(blockIteratorTimeout)
-					continue
-				}
-			}
-			blk, err := cl.Block(bh)
-			if err != nil {
-				errc <- err
-				return
-			}
-			bh = blk.NextBlockHash
-			blockHeight++
-			select {
-			case bc <- blk:
-			case <-cc:
-				return
-			}
-		}
-	}()
-	return func() (*types.Block, error) {
-		select {
-		case blk := <-bc:
-			return blk, nil
-		case err := <-errc:
-			return nil, err
-		}
-	}, func() { close(cc) }
-}
-
-func NewTransactionIterator(cl Client, blockHeight uint64) (TransactionFunc, CloseFunc) {
-	cc := make(chan struct{}, 1)
-	tc := make(chan *types.Transaction)
-	errc := make(chan error)
-	go func() {
-		defer close(tc)
-		defer close(errc)
-		nextBlk, closeIter := NewBlockIterator(cl, blockHeight)
-		defer closeIter()
-		for {
-			blk, err := nextBlk()
-			if err != nil {
-				errc <- err
-				return
-			}
-			for _, i := range blk.Transactions {
-				tx, err := cl.Transaction(i)
-				if err != nil {
-					errc <- err
-					return
-				}
-				tc <- tx
-			}
-		}
-	}()
-	return func() (*types.Transaction, error) {
-		select {
-		case tx := <-tc:
-			return tx, nil
-		case err := <-errc:
-			return nil, err
-		}
-	}, func() { close(cc) }
-}
-
-// func (c *baseClient) NewTransactionIterator(firstBlockHeight int) (chan *types.Transaction, CloseFunc) {
-// 	cc := make(chan struct{})
-// 	// r := make(chan *types.Transaction)
-// 	return nil, func() { close(cc) }
-// }
