@@ -1,7 +1,6 @@
 package cryptocore
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -79,26 +78,27 @@ func TestClient(t *testing.T) {
 			require.NoError(t, err, "can't get block")
 			// get transaction
 			txs := blk.Transactions()
-			lastTx, err := i.cl.Transaction(txs[0])
+			// lastTx, err := i.cl.Transaction(txs[0])
+			_, err = i.cl.Transaction(txs[0])
 			require.NoError(t, err, "can't find transaction")
-			// iterate all blocks
-			blkIter := NewBlockIterator(i.cl, bc-5)
-			for {
-				_, err = blkIter.Next()
-				if err == ErrNoBlock {
-					break
-				}
-				require.NoError(t, err, "can't iterate blocks")
-			}
-			// iterate transactions
-			txIter := NewTransactionIterator(i.cl, bc-5)
-			for {
-				tx, err := txIter.Next()
-				require.NoError(t, err, "can't iterate transactions")
-				if bytes.Equal(tx.ID(), lastTx.ID()) {
-					break
-				}
-			}
+			// // iterate all blocks
+			// blkIter := NewBlockIterator(i.cl, bc-5)
+			// for {
+			// 	_, err = blkIter.Next()
+			// 	if err == ErrNoBlock {
+			// 		break
+			// 	}
+			// 	require.NoError(t, err, "can't iterate blocks")
+			// }
+			// // iterate transactions
+			// txIter := NewTransactionIterator(i.cl, bc-5)
+			// for {
+			// 	tx, err := txIter.Next()
+			// 	require.NoError(t, err, "can't iterate transactions")
+			// 	if bytes.Equal(tx.ID(), lastTx.ID()) {
+			// 		break
+			// 	}
+			// }
 		})
 	}
 }

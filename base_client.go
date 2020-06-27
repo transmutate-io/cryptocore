@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -174,6 +175,8 @@ func (c *baseClient) SendToAddress(addr string, value types.Amount) (types.Bytes
 
 func (c *baseClient) BlockCount() (uint64, error) { return c.doUint64("getblockcount", nil) }
 
+var ErrNoBlock = errors.New("no block")
+
 func (c *baseClient) BlockHash(height uint64) (types.Bytes, error) {
 	r, err := c.doBytes("getblockhash", args(height))
 	if err != nil {
@@ -185,8 +188,20 @@ func (c *baseClient) BlockHash(height uint64) (types.Bytes, error) {
 	return r, nil
 }
 
+var ErrNonFinal = errors.New("non final")
+
 func (c *baseClient) SendRawTransaction(tx types.Bytes) (types.Bytes, error) {
-	return c.doBytes("sendrawtransaction", args(tx.Hex()))
+	r, err := c.doBytes("sendrawtransaction", args(tx.Hex()))
+	if err != nil {
+		e, ok := err.(*ClientError)
+		if !ok {
+			return nil, err
+		}
+		if e.Code == -26 {
+			return nil, ErrNonFinal
+		}
+	}
+	return r, nil
 }
 
 func (c *baseClient) RawTransaction(hash types.Bytes) (types.Bytes, error) {
