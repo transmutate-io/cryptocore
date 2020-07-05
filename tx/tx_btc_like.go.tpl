@@ -3,7 +3,7 @@ package {{ .Values.package }}
 import (
 	"encoding/json"
 
-	"transmutate.io/pkg/cryptocore/types"
+	"github.com/transmutate-io/cryptocore/types"
 )
 
 type Tx{{ .Values.short }} struct{ txBTC }

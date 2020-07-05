@@ -1,6 +1,6 @@
 package tx
 
-import "transmutate.io/pkg/cryptocore/types"
+import "github.com/transmutate-io/cryptocore/types"
 
 type (
 	Tx interface {

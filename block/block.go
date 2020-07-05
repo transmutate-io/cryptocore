@@ -1,6 +1,6 @@
 package block
 
-import "transmutate.io/pkg/cryptocore/types"
+import "github.com/transmutate-io/cryptocore/types"
 
 type (
 	Block interface {

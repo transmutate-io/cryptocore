@@ -3,7 +3,7 @@ package tx
 import (
 	"encoding/json"
 
-	"transmutate.io/pkg/cryptocore/types"
+	"github.com/transmutate-io/cryptocore/types"
 )
 
 type TxDOGE struct{ txBTC }

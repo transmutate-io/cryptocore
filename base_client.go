@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"strings"
 
-	"transmutate.io/pkg/cryptocore/types"
+	"github.com/transmutate-io/cryptocore/types"
 )
 
 type baseClient struct {

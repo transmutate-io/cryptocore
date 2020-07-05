@@ -3,9 +3,9 @@ package cryptocore
 import (
 	"strings"
 
-	"transmutate.io/pkg/cryptocore/block"
-	"transmutate.io/pkg/cryptocore/tx"
-	"transmutate.io/pkg/cryptocore/types"
+	"github.com/transmutate-io/cryptocore/block"
+	"github.com/transmutate-io/cryptocore/tx"
+	"github.com/transmutate-io/cryptocore/types"
 )
 
 type bchClient struct{ *baseClient }

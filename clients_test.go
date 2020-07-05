@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"transmutate.io/pkg/cryptocore/types"
+	"github.com/transmutate-io/cryptocore/types"
 )
 
 const amt = "1"
