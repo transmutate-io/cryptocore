@@ -33,20 +33,39 @@ func splitAmount(amt string) (uint64, uint64, error) {
 	return uint64(a), uint64(b), nil
 }
 
+func cleanAmount(s string) string {
+	for strings.HasPrefix(s, "0") {
+		s = strings.TrimPrefix(s, "0")
+	}
+	if strings.HasPrefix(s, ".") {
+		s = "0" + s
+	}
+	if !strings.Contains(s, ".") {
+		return s
+	}
+	for strings.HasSuffix(s, "0") {
+		s = strings.TrimSuffix(s, "0")
+	}
+	if strings.HasSuffix(s, ".") {
+		s = strings.TrimSuffix(s, ".")
+	}
+	return s
+}
+
 func NewAmount(a uint64, p uint64) Amount {
 	d := uint64(math.Pow10(int(p)))
 	aa, bb := a/d, a%d
-	return Amount(fmt.Sprintf("%[1]d.%0.[3]*[2]d", aa, bb, p))
+	return Amount(cleanAmount(fmt.Sprintf("%[1]d.%0.[3]*[2]d", aa, bb, p)))
 }
 
 func ParseAmount(amt string) (Amount, error) {
 	if _, _, err := splitAmount(amt); err != nil {
 		return "", err
 	}
-	return Amount(amt), nil
+	return Amount(cleanAmount(amt)), nil
 }
 
-func (a Amount) String() string               { return string(a) }
+func (a Amount) String() string               { return cleanAmount(string(a)) }
 func (a Amount) MarshalJSON() ([]byte, error) { return []byte(a), nil }
 
 func (a *Amount) UnmarshalJSON(b []byte) error {
