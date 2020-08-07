@@ -194,12 +194,10 @@ func (c *baseClient) SendRawTransaction(tx types.Bytes) (types.Bytes, error) {
 	r, err := c.doBytes("sendrawtransaction", args(tx.Hex()))
 	if err != nil {
 		e, ok := err.(*ClientError)
-		if !ok {
-			return nil, err
-		}
-		if e.Code == -26 {
+		if ok && e.Code == -26 {
 			return nil, ErrNonFinal
 		}
+		return nil, err
 	}
 	return r, nil
 }
