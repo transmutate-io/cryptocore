@@ -10,8 +10,12 @@ import (
 
 type bchClient struct{ *baseClient }
 
-func NewClientBCH(addr, user, pass string, tlsConf *TLSConfig) Client {
-	return &bchClient{baseClient: newBaseClient(addr, user, pass, tlsConf)}
+func NewClientBCH(addr, user, pass string, tlsConf *TLSConfig) (Client, error) {
+	b, err := newBaseClient(addr, user, pass, tlsConf)
+	if err != nil {
+		return nil, err
+	}
+	return &bchClient{baseClient: b}, nil
 }
 
 func (c *bchClient) RawBlock(hash types.Bytes) (types.Bytes, error) {

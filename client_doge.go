@@ -8,8 +8,12 @@ import (
 
 type dogeClient struct{ *baseClient }
 
-func NewClientDOGE(addr, user, pass string, tlsConf *TLSConfig) Client {
-	return &dogeClient{baseClient: newBaseClient(addr, user, pass, tlsConf)}
+func NewClientDOGE(addr, user, pass string, tlsConf *TLSConfig) (Client, error) {
+	b, err := newBaseClient(addr, user, pass, tlsConf)
+	if err != nil {
+		return nil, err
+	}
+	return &dogeClient{baseClient: b}, nil
 }
 
 func (c *dogeClient) RawBlock(hash types.Bytes) (types.Bytes, error) {

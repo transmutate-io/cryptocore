@@ -14,19 +14,61 @@ import (
 )
 
 type baseClient struct {
-	Address   string
-	Username  string
-	Password  string
-	TLSConfig *TLSConfig
+	Address         string
+	Username        string
+	Password        string
+	tlsConfig       *TLSConfig
+	cachedTLSConfig *tls.Config
 }
 
-func newBaseClient(addr, user, pass string, tlsConf *TLSConfig) *baseClient {
-	return &baseClient{
-		Address:   addr,
-		Username:  user,
-		Password:  pass,
-		TLSConfig: tlsConf,
+func newBaseClient(addr, user, pass string, tlsConf *TLSConfig) (*baseClient, error) {
+	r := &baseClient{
+		Address:  addr,
+		Username: user,
+		Password: pass,
 	}
+	if err := r.SetTLSConfig(tlsConf); err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
+func (c *baseClient) SetTLSConfig(cfg *TLSConfig) error {
+	c.tlsConfig = cfg
+	nc, err := c.newTLSConfig()
+	if err != nil {
+		return err
+	}
+	c.cachedTLSConfig = nc
+	return nil
+}
+
+func (c *baseClient) newTLSConfig() (*tls.Config, error) {
+	if c.tlsConfig == nil {
+		return nil, nil
+	}
+	tlsConf := &tls.Config{InsecureSkipVerify: c.tlsConfig.SkipVerify}
+	if c.tlsConfig.CA != "" {
+		b, err := ioutil.ReadFile(c.tlsConfig.CA)
+		if err != nil {
+			return nil, err
+		}
+		cert, err := x509.ParseCertificate(b)
+		if err != nil {
+			return nil, err
+		}
+		rootCAs := x509.NewCertPool()
+		rootCAs.AddCert(cert)
+		tlsConf.RootCAs = rootCAs
+	}
+	if c.tlsConfig.ClientCertificate != "" && c.tlsConfig.ClientKey != "" {
+		cert, err := tls.LoadX509KeyPair(c.tlsConfig.ClientCertificate, c.tlsConfig.ClientKey)
+		if err != nil {
+			return nil, err
+		}
+		tlsConf.Certificates = append(tlsConf.Certificates, cert)
+	}
+	return tlsConf, nil
 }
 
 func (c *baseClient) do(method string, params interface{}, r interface{}) error {
@@ -40,33 +82,12 @@ func (c *baseClient) do(method string, params interface{}, r interface{}) error 
 	if err != nil {
 		return err
 	}
-	cl := &http.Client{}
+	cl := &http.Client{Transport: &http.Transport{TLSClientConfig: c.cachedTLSConfig}}
 	callURL := append(make([]string, 0, 16), "http")
-	if c.TLSConfig != nil {
+	if c.tlsConfig != nil {
 		callURL = append(callURL, "s")
-		tlsConf := &tls.Config{InsecureSkipVerify: c.TLSConfig.SkipVerify}
-		if c.TLSConfig.CA != "" {
-			b, err := ioutil.ReadFile(c.TLSConfig.CA)
-			if err != nil {
-				return err
-			}
-			cert, err := x509.ParseCertificate(b)
-			if err != nil {
-				return err
-			}
-			rootCAs := x509.NewCertPool()
-			rootCAs.AddCert(cert)
-			tlsConf.RootCAs = rootCAs
-		}
-		if c.TLSConfig.ClientCertificate != "" && c.TLSConfig.ClientKey != "" {
-			cert, err := tls.LoadX509KeyPair(c.TLSConfig.ClientCertificate, c.TLSConfig.ClientKey)
-			if err != nil {
-				return err
-			}
-			tlsConf.Certificates = append(tlsConf.Certificates, cert)
-		}
-		cl.Transport = &http.Transport{TLSClientConfig: tlsConf}
 	}
+	// use cached config
 	callURL = append(callURL, "://")
 	if c.Username != "" {
 		callURL = append(callURL, c.Username, ":", c.Password)

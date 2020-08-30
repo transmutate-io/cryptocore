@@ -8,8 +8,12 @@ import (
 
 type btcClient struct{ *baseClient }
 
-func NewClientBTC(addr, user, pass string, tlsConf *TLSConfig) Client {
-	return &btcClient{baseClient: newBaseClient(addr, user, pass, tlsConf)}
+func NewClientBTC(addr, user, pass string, tlsConf *TLSConfig) (Client, error) {
+	b, err := newBaseClient(addr, user, pass, tlsConf)
+	if err != nil {
+		return nil, err
+	}
+	return &btcClient{baseClient: b}, nil
 }
 
 func (c *btcClient) RawBlock(hash types.Bytes) (types.Bytes, error) {

@@ -8,8 +8,12 @@ import (
 
 type dcrClient struct{ *baseClient }
 
-func NewClientDCR(addr, user, pass string, tlsConf *TLSConfig) Client {
-	return &dcrClient{baseClient: newBaseClient(addr, user, pass, tlsConf)}
+func NewClientDCR(addr, user, pass string, tlsConf *TLSConfig) (Client, error) {
+	b, err := newBaseClient(addr, user, pass, tlsConf)
+	if err != nil {
+		return nil, err
+	}
+	return &dcrClient{baseClient: b}, nil
 }
 
 func (c *dcrClient) RawBlock(hash types.Bytes) (types.Bytes, error) {

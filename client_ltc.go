@@ -8,8 +8,12 @@ import (
 
 type ltcClient struct{ *baseClient }
 
-func NewClientLTC(addr, user, pass string, tlsConf *TLSConfig) Client {
-	return &ltcClient{baseClient: newBaseClient(addr, user, pass, tlsConf)}
+func NewClientLTC(addr, user, pass string, tlsConf *TLSConfig) (Client, error) {
+	b, err := newBaseClient(addr, user, pass, tlsConf)
+	if err != nil {
+		return nil, err
+	}
+	return &ltcClient{baseClient: b}, nil
 }
 
 func (c *ltcClient) Block(hash types.Bytes) (block.Block, error) {

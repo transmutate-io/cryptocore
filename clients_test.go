@@ -9,42 +9,65 @@ import (
 
 const amt = "1"
 
-var clients = []struct {
+type clientConfig struct {
 	name    string
 	nBlocks int
 	amount  types.Amount
 	cl      Client
-}{
-	{
-		"BTC",
-		101,
-		types.Amount(amt),
-		NewClientBTC("bitcoin-core-regtest.docker:4444", "admin", "pass", nil),
-	},
-	{
-		"LTC",
-		101,
-		types.Amount(amt),
-		NewClientLTC("litecoin-regtest.docker:4444", "admin", "pass", nil),
-	},
-	{
-		"DOGE",
-		101,
-		types.Amount(amt),
-		NewClientDOGE("dogecoin-regtest.docker:4444", "admin", "pass", nil),
-	},
-	{
-		"BCH",
-		101,
-		types.Amount(amt),
-		NewClientBCH("bitcoin-cash-regtest.docker:4444", "admin", "pass", nil),
-	},
-	{
-		"DCR",
-		101,
-		types.Amount(amt),
-		NewClientDCR("decred-wallet-simnet.docker:4444", "admin", "pass", &TLSConfig{SkipVerify: true}),
-	},
+}
+
+var clients = make([]clientConfig, 0, 8)
+
+func init() {
+	var (
+		cl  Client
+		err error
+	)
+	if cl, err = NewClientBTC("bitcoin-core-localnet.docker:4444", "admin", "pass", nil); err != nil {
+		panic(err)
+	}
+	clients = append(clients, clientConfig{
+		name:    "BTC",
+		nBlocks: 101,
+		amount:  types.Amount(amt),
+		cl:      cl,
+	})
+	if cl, err = NewClientLTC("litecoin-localnet.docker:4444", "admin", "pass", nil); err != nil {
+		panic(err)
+	}
+	clients = append(clients, clientConfig{
+		name:    "LTC",
+		nBlocks: 101,
+		amount:  types.Amount(amt),
+		cl:      cl,
+	})
+	if cl, err = NewClientDOGE("dogecoin-localnet.docker:4444", "admin", "pass", nil); err != nil {
+		panic(err)
+	}
+	clients = append(clients, clientConfig{
+		name:    "DOGE",
+		nBlocks: 101,
+		amount:  types.Amount(amt),
+		cl:      cl,
+	})
+	if cl, err = NewClientBCH("bitcoin-cash-localnet.docker:4444", "admin", "pass", nil); err != nil {
+		panic(err)
+	}
+	clients = append(clients, clientConfig{
+		name:    "BCH",
+		nBlocks: 101,
+		amount:  types.Amount(amt),
+		cl:      cl,
+	})
+	if cl, err = NewClientDCR("decred-wallet-localnet.docker:4444", "admin", "pass", &TLSConfig{SkipVerify: true}); err != nil {
+		panic(err)
+	}
+	clients = append(clients, clientConfig{
+		name:    "DCR",
+		nBlocks: 101,
+		amount:  types.Amount(amt),
+		cl:      cl,
+	})
 }
 
 func generateBlocks(cl Client, nBlocks int, addr string) ([]types.Bytes, error) {
