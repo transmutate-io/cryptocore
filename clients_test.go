@@ -1,9 +1,11 @@
 package cryptocore
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/transmutate-io/cryptocore/block"
 	"github.com/transmutate-io/cryptocore/types"
 )
 
@@ -28,7 +30,7 @@ func init() {
 	}
 	clients = append(clients, clientConfig{
 		name:    "BTC",
-		nBlocks: 101,
+		nBlocks: 1,
 		amount:  types.Amount(amt),
 		cl:      cl,
 	})
@@ -37,7 +39,7 @@ func init() {
 	}
 	clients = append(clients, clientConfig{
 		name:    "LTC",
-		nBlocks: 101,
+		nBlocks: 1,
 		amount:  types.Amount(amt),
 		cl:      cl,
 	})
@@ -46,7 +48,7 @@ func init() {
 	}
 	clients = append(clients, clientConfig{
 		name:    "DOGE",
-		nBlocks: 101,
+		nBlocks: 1,
 		amount:  types.Amount(amt),
 		cl:      cl,
 	})
@@ -55,7 +57,7 @@ func init() {
 	}
 	clients = append(clients, clientConfig{
 		name:    "BCH",
-		nBlocks: 101,
+		nBlocks: 1,
 		amount:  types.Amount(amt),
 		cl:      cl,
 	})
@@ -64,29 +66,49 @@ func init() {
 	}
 	clients = append(clients, clientConfig{
 		name:    "DCR",
-		nBlocks: 101,
+		nBlocks: 1,
+		amount:  types.Amount(amt),
+		cl:      cl,
+	})
+	if cl, err = NewClientETH("ethereum-localnet.docker:4444", "", "", nil); err != nil {
+		panic(err)
+	}
+	clients = append(clients, clientConfig{
+		name:    "ETH",
+		nBlocks: 1,
 		amount:  types.Amount(amt),
 		cl:      cl,
 	})
 }
 
+var errNotABlockGenerator = errors.New("not a block generator")
+
 func generateBlocks(cl Client, nBlocks int, addr string) ([]types.Bytes, error) {
-	if cl.CanGenerateBlocksToAddress() {
-		return cl.GenerateBlocksToAddress(nBlocks, addr)
-	} else {
-		return cl.GenerateBlocks(nBlocks)
+	if bg, ok := cl.(TargetedBlockGenerator); ok {
+		return bg.GenerateToAddress(nBlocks, addr)
+	} else if bg, ok := cl.(BlockGenerator); ok {
+		return bg.Generate(nBlocks)
 	}
+	return nil, errNotABlockGenerator
 }
 
 func TestClient(t *testing.T) {
 	for _, i := range clients {
 		t.Run(i.name, func(t *testing.T) {
 			// generate a new address
-			addr, err := i.cl.NewAddress()
-			require.NoError(t, err, "can't generate address")
+			var (
+				addr string
+				err  error
+			)
+			if addrGen, ok := i.cl.(AddressGenerator); ok {
+				addr, err = addrGen.NewAddress()
+				require.NoError(t, err, "can't generate address")
+			}
 			// generate blocks
-			_, err = generateBlocks(i.cl, 101, addr)
-			require.NoError(t, err, "can't generate blocks")
+			_, err = generateBlocks(i.cl, i.nBlocks, addr)
+			if err != errNotABlockGenerator {
+				require.NoError(t, err, "can't generate blocks")
+			}
 			// get block count
 			bc, err := i.cl.BlockCount()
 			require.NoError(t, err, "can't get block count")
@@ -100,28 +122,11 @@ func TestClient(t *testing.T) {
 			blk, err := i.cl.Block(bh)
 			require.NoError(t, err, "can't get block")
 			// get transaction
-			txs := blk.Transactions()
-			// lastTx, err := i.cl.Transaction(txs[0])
-			_, err = i.cl.Transaction(txs[0])
-			require.NoError(t, err, "can't find transaction")
-			// // iterate all blocks
-			// blkIter := NewBlockIterator(i.cl, bc-5)
-			// for {
-			// 	_, err = blkIter.Next()
-			// 	if err == ErrNoBlock {
-			// 		break
-			// 	}
-			// 	require.NoError(t, err, "can't iterate blocks")
-			// }
-			// // iterate transactions
-			// txIter := NewTransactionIterator(i.cl, bc-5)
-			// for {
-			// 	tx, err := txIter.Next()
-			// 	require.NoError(t, err, "can't iterate transactions")
-			// 	if bytes.Equal(tx.ID(), lastTx.ID()) {
-			// 		break
-			// 	}
-			// }
+			if blkTx, ok := blk.(block.TransactionsLister); ok {
+				txs := blkTx.TransactionsHashes()
+				_, err = i.cl.Transaction(txs[0])
+				require.NoError(t, err, "can't find transaction")
+			}
 		})
 	}
 }
@@ -129,9 +134,11 @@ func TestClient(t *testing.T) {
 func TestBalance(t *testing.T) {
 	for _, i := range clients {
 		t.Run(i.name, func(t *testing.T) {
-			bal, err := i.cl.Balance(0)
-			require.NoError(t, err, "can't get balance")
-			t.Logf("::: %#v\n", bal)
+			if balancer, ok := i.cl.(Balancer); ok {
+				bal, err := balancer.Balance(0)
+				require.NoError(t, err, "can't get balance")
+				t.Logf("::: %#v\n", bal)
+			}
 		})
 	}
 }

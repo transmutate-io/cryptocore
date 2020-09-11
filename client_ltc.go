@@ -6,14 +6,24 @@ import (
 	"github.com/transmutate-io/cryptocore/types"
 )
 
-type ltcClient struct{ *baseClient }
+var (
+	_ Client                 = (*ltcClient)(nil)
+	_ TargetedBlockGenerator = (*ltcClient)(nil)
+	_ AddressGenerator       = (*ltcClient)(nil)
+	_ Sender                 = (*ltcClient)(nil)
+	_ RawTransactionSender   = (*ltcClient)(nil)
+	_ Balancer               = (*ltcClient)(nil)
+	_ AddressLister          = (*ltcClient)(nil)
+)
+
+type ltcClient struct{ baseBTCClient }
 
 func NewClientLTC(addr, user, pass string, tlsConf *TLSConfig) (Client, error) {
-	b, err := newBaseClient(addr, user, pass, tlsConf)
+	c, err := newJsonRpcClient(addr, user, pass, tlsConf)
 	if err != nil {
 		return nil, err
 	}
-	return &ltcClient{baseClient: b}, nil
+	return &ltcClient{baseBTCClient{*c}}, nil
 }
 
 func (c *ltcClient) Block(hash types.Bytes) (block.Block, error) {
@@ -34,4 +44,8 @@ func (c *ltcClient) Transaction(hash types.Bytes) (tx.Tx, error) {
 		return nil, err
 	}
 	return r, nil
+}
+
+func (c *ltcClient) GenerateToAddress(nBlocks int, addr string) ([]types.Bytes, error) {
+	return c.doSliceBytes("generatetoaddress", args(nBlocks, addr))
 }

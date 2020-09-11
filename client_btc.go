@@ -6,14 +6,24 @@ import (
 	"github.com/transmutate-io/cryptocore/types"
 )
 
-type btcClient struct{ *baseClient }
+var (
+	_ Client                 = (*btcClient)(nil)
+	_ TargetedBlockGenerator = (*btcClient)(nil)
+	_ AddressGenerator       = (*btcClient)(nil)
+	_ Sender                 = (*btcClient)(nil)
+	_ RawTransactionSender   = (*btcClient)(nil)
+	_ Balancer               = (*btcClient)(nil)
+	_ AddressLister          = (*btcClient)(nil)
+)
+
+type btcClient struct{ baseBTCClient }
 
 func NewClientBTC(addr, user, pass string, tlsConf *TLSConfig) (Client, error) {
-	b, err := newBaseClient(addr, user, pass, tlsConf)
+	c, err := newJsonRpcClient(addr, user, pass, tlsConf)
 	if err != nil {
 		return nil, err
 	}
-	return &btcClient{baseClient: b}, nil
+	return &btcClient{baseBTCClient{*c}}, nil
 }
 
 func (c *btcClient) RawBlock(hash types.Bytes) (types.Bytes, error) {
@@ -36,8 +46,6 @@ func (c *btcClient) Transaction(hash types.Bytes) (tx.Tx, error) {
 	return r, nil
 }
 
-func (c *btcClient) CanGenerateBlocks() bool { return false }
-
-func (c *btcClient) GenerateBlocks(nBlocks int) ([]types.Bytes, error) {
-	panic("can't call \"generate\" method")
+func (c *btcClient) GenerateToAddress(nBlocks int, addr string) ([]types.Bytes, error) {
+	return c.doSliceBytes("generatetoaddress", args(nBlocks, addr))
 }

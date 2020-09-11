@@ -47,7 +47,7 @@ func NewAmountUInt64(a uint64, d int) Amount {
 	return Amount(fmt.Sprintf("%[1]d.%0.[3]*[2]d", aa, bb, d)).Clean()
 }
 
-func NewAmountBigInt(a *big.Int, d int) Amount {
+func NewAmountBig(a *big.Int, d int) Amount {
 	s := a.String()
 	ssz := len(s)
 	if ssz > d {

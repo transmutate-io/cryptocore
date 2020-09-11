@@ -1,3 +1,3 @@
 package tx
 
-//go:generate go run ../../tpl_gen/main.go gen.yaml
+//go:generate go run ../cmd/tpl_gen/main.go gen.yaml

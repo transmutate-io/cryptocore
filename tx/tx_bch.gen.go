@@ -6,6 +6,11 @@ import (
 	"github.com/transmutate-io/cryptocore/types"
 )
 
+var (
+	_ Tx     = (*TxBCH)(nil)
+	_ TxUTXO = (*TxBCH)(nil)
+)
+
 type TxBCH struct{ txBTC }
 
 func (tx *TxBCH) ID() types.Bytes { return tx.txBTC.ID }

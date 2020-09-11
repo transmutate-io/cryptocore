@@ -1,25 +1,34 @@
 package block
 
-import "github.com/transmutate-io/cryptocore/types"
+import (
+	"github.com/transmutate-io/cryptocore/tx"
+	"github.com/transmutate-io/cryptocore/types"
+)
 
 type (
-	Block interface {
-		Hash() types.Bytes
-		Confirmations() int
-		Height() int
-		Transactions() []types.Bytes
-		Time() types.UnixTime
-		PreviousBlockHash() types.Bytes
+	ForwardBlockNavigator interface {
 		NextBlockHash() types.Bytes
 	}
 
-	commonBlock struct {
-		Hash              types.Bytes    `json:"hash"`
-		Confirmations     int            `json:"confirmations"`
-		Height            int            `json:"height"`
-		Transactions      []types.Bytes  `json:"tx"`
-		Time              types.UnixTime `json:"time"`
-		PreviousBlockHash types.Bytes    `json:"previousblockhash,omitempty"`
-		NextBlockHash     types.Bytes    `json:"nextblockhash,omitempty"`
+	BackwardBlockNavigator interface {
+		PreviousBlockHash() types.Bytes
+	}
+
+	ConfirmationCounter interface {
+		Confirmations() int
+	}
+
+	TransactionsLister interface {
+		TransactionsHashes() []types.Bytes
+	}
+
+	TransactionsFetcher interface {
+		Transactions() []tx.Tx
+	}
+
+	Block interface {
+		Hash() types.Bytes
+		Height() int
+		Time() types.UnixTime
 	}
 )

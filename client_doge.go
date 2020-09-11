@@ -6,14 +6,24 @@ import (
 	"github.com/transmutate-io/cryptocore/types"
 )
 
-type dogeClient struct{ *baseClient }
+var (
+	_ Client                 = (*dogeClient)(nil)
+	_ TargetedBlockGenerator = (*dogeClient)(nil)
+	_ AddressGenerator       = (*dogeClient)(nil)
+	_ Sender                 = (*dogeClient)(nil)
+	_ RawTransactionSender   = (*dogeClient)(nil)
+	_ Balancer               = (*dogeClient)(nil)
+	_ AddressLister          = (*dogeClient)(nil)
+)
+
+type dogeClient struct{ baseBTCClient }
 
 func NewClientDOGE(addr, user, pass string, tlsConf *TLSConfig) (Client, error) {
-	b, err := newBaseClient(addr, user, pass, tlsConf)
+	c, err := newJsonRpcClient(addr, user, pass, tlsConf)
 	if err != nil {
 		return nil, err
 	}
-	return &dogeClient{baseClient: b}, nil
+	return &dogeClient{baseBTCClient{*c}}, nil
 }
 
 func (c *dogeClient) RawBlock(hash types.Bytes) (types.Bytes, error) {
@@ -34,4 +44,8 @@ func (c *dogeClient) Transaction(hash types.Bytes) (tx.Tx, error) {
 		return nil, err
 	}
 	return r, nil
+}
+
+func (c *dogeClient) GenerateToAddress(nBlocks int, addr string) ([]types.Bytes, error) {
+	return c.doSliceBytes("generatetoaddress", args(nBlocks, addr))
 }

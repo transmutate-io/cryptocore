@@ -6,14 +6,24 @@ import (
 	"github.com/transmutate-io/cryptocore/types"
 )
 
-type dcrClient struct{ *baseClient }
+var (
+	_ Client               = (*dcrClient)(nil)
+	_ BlockGenerator       = (*dcrClient)(nil)
+	_ AddressGenerator     = (*dcrClient)(nil)
+	_ Sender               = (*dcrClient)(nil)
+	_ RawTransactionSender = (*dcrClient)(nil)
+	_ Balancer             = (*dcrClient)(nil)
+	_ AddressLister        = (*dcrClient)(nil)
+)
+
+type dcrClient struct{ baseBTCClient }
 
 func NewClientDCR(addr, user, pass string, tlsConf *TLSConfig) (Client, error) {
-	b, err := newBaseClient(addr, user, pass, tlsConf)
+	c, err := newJsonRpcClient(addr, user, pass, tlsConf)
 	if err != nil {
 		return nil, err
 	}
-	return &dcrClient{baseClient: b}, nil
+	return &dcrClient{baseBTCClient{*c}}, nil
 }
 
 func (c *dcrClient) RawBlock(hash types.Bytes) (types.Bytes, error) {
@@ -36,10 +46,8 @@ func (c *dcrClient) Transaction(hash types.Bytes) (tx.Tx, error) {
 	return r, nil
 }
 
-func (c *dcrClient) CanGenerateBlocksToAddress() bool { return false }
-
-func (c *dcrClient) GenerateBlocksToAddress(nBlocks int, addr string) ([]types.Bytes, error) {
-	panic("can't call \"generatetoaddress\" method")
+func (c *dcrClient) Generate(nBlocks int) ([]types.Bytes, error) {
+	return c.doSliceBytes("generate", args(nBlocks))
 }
 
 func (c *dcrClient) Balance(minConf int64) (types.Amount, error) {
@@ -59,7 +67,11 @@ func (c *dcrClient) Balance(minConf int64) (types.Amount, error) {
 	}
 	total := uint64(0)
 	for _, i := range r.Balances {
-		total += i.Total.UInt64((8))
+		ii, err := i.Total.UInt64(8)
+		if err != nil {
+			return "", err
+		}
+		total += ii
 	}
-	return types.NewAmount(total, 8), nil
+	return types.NewAmountUInt64(total, 8), nil
 }

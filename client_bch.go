@@ -8,14 +8,24 @@ import (
 	"github.com/transmutate-io/cryptocore/types"
 )
 
-type bchClient struct{ *baseClient }
+var (
+	_ Client                 = (*bchClient)(nil)
+	_ TargetedBlockGenerator = (*bchClient)(nil)
+	_ AddressGenerator       = (*bchClient)(nil)
+	_ Sender                 = (*bchClient)(nil)
+	_ RawTransactionSender   = (*bchClient)(nil)
+	_ Balancer               = (*bchClient)(nil)
+	_ AddressLister          = (*bchClient)(nil)
+)
+
+type bchClient struct{ baseBTCClient }
 
 func NewClientBCH(addr, user, pass string, tlsConf *TLSConfig) (Client, error) {
-	b, err := newBaseClient(addr, user, pass, tlsConf)
+	c, err := newJsonRpcClient(addr, user, pass, tlsConf)
 	if err != nil {
 		return nil, err
 	}
-	return &bchClient{baseClient: b}, nil
+	return &bchClient{baseBTCClient{*c}}, nil
 }
 
 func (c *bchClient) RawBlock(hash types.Bytes) (types.Bytes, error) {
@@ -52,13 +62,17 @@ func (c *bchClient) Transaction(hash types.Bytes) (tx.Tx, error) {
 	return r, nil
 }
 
-func (c *bchClient) ReceivedByAddress(minConf, includeEmpty, includeWatchOnly interface{}) ([]*types.AddressFunds, error) {
-	r, err := c.baseClient.ReceivedByAddress(minConf, includeEmpty, includeWatchOnly)
+func (c *bchClient) GenerateToAddress(nBlocks int, addr string) ([]types.Bytes, error) {
+	return c.doSliceBytes("generatetoaddress", args(nBlocks, addr))
+}
+
+func (c *bchClient) AvailableAddresses() ([]string, error) {
+	r, err := c.baseBTCClient.AvailableAddresses()
 	if err != nil {
 		return nil, err
 	}
-	for _, i := range r {
-		i.Address = trimAddress((i.Address))
+	for i, v := range r {
+		r[i] = trimAddress(v)
 	}
 	return r, nil
 }

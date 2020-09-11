@@ -6,20 +6,28 @@ import (
 	"github.com/transmutate-io/cryptocore/types"
 )
 
-type BlockLTC struct{ commonBlock }
+var (
+	_ Block                  = (*BlockLTC)(nil)
+	_ TransactionsLister     = (*BlockLTC)(nil)
+	_ ConfirmationCounter    = (*BlockLTC)(nil)
+	_ ForwardBlockNavigator  = (*BlockLTC)(nil)
+	_ BackwardBlockNavigator = (*BlockLTC)(nil)
+)
 
-func (blk *BlockLTC) Hash() types.Bytes { return blk.commonBlock.Hash }
+type BlockLTC struct{ baseBTCBlock }
 
-func (blk *BlockLTC) Confirmations() int { return blk.commonBlock.Confirmations }
+func (blk *BlockLTC) Hash() types.Bytes { return blk.baseBTCBlock.Hash }
 
-func (blk *BlockLTC) Height() int { return blk.commonBlock.Height }
+func (blk *BlockLTC) Confirmations() int { return blk.baseBTCBlock.Confirmations }
 
-func (blk *BlockLTC) Transactions() []types.Bytes { return blk.commonBlock.Transactions }
+func (blk *BlockLTC) Height() int { return blk.baseBTCBlock.Height }
 
-func (blk *BlockLTC) Time() types.UnixTime { return blk.commonBlock.Time }
+func (blk *BlockLTC) TransactionsHashes() []types.Bytes { return blk.baseBTCBlock.Transactions }
 
-func (blk *BlockLTC) PreviousBlockHash() types.Bytes { return blk.commonBlock.PreviousBlockHash }
+func (blk *BlockLTC) Time() types.UnixTime { return blk.baseBTCBlock.Time }
 
-func (blk *BlockLTC) NextBlockHash() types.Bytes { return blk.commonBlock.NextBlockHash }
+func (blk *BlockLTC) PreviousBlockHash() types.Bytes { return blk.baseBTCBlock.PreviousBlockHash }
 
-func (blk *BlockLTC) UnmarshalJSON(b []byte) error { return json.Unmarshal(b, &blk.commonBlock) }
+func (blk *BlockLTC) NextBlockHash() types.Bytes { return blk.baseBTCBlock.NextBlockHash }
+
+func (blk *BlockLTC) UnmarshalJSON(b []byte) error { return json.Unmarshal(b, &blk.baseBTCBlock) }

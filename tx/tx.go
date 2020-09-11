@@ -6,13 +6,12 @@ type (
 	Tx interface {
 		ID() types.Bytes
 		Hash() types.Bytes
-		BlockHash() types.Bytes
-		Confirmations() int
-		BlockTime() types.UnixTime
-		UTXO() (TxUTXO, bool)
 	}
 
 	TxUTXO interface {
+		BlockHash() types.Bytes
+		Confirmations() int
+		BlockTime() types.UnixTime
 		LockTime() types.UnixTime
 		Inputs() []Input
 		Outputs() []Output
@@ -43,5 +42,10 @@ type (
 		RequiredSignatures() int
 		Type() string
 		Addresses() []string
+	}
+
+	TxStateBased interface {
+		Value() types.Amount
+		To() string
 	}
 )

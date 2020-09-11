@@ -34,7 +34,7 @@ func TestAmount(t *testing.T) {
 		require.True(t, amt.Valid())
 		b, err := json.Marshal(amt)
 		require.NoError(t, err)
-		amt2 := NewAmountBigInt(big.NewInt(int64(i.a)), i.d)
+		amt2 := NewAmountBig(big.NewInt(int64(i.a)), i.d)
 		bi, err = amt.BigInt(i.d)
 		require.NoError(t, err)
 		bi2, err := amt2.BigInt(i.d)
